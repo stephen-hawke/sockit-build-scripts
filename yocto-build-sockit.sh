@@ -21,13 +21,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+# Author: Dan Negvesky <dnegvesky@arrow.com>
+# Contributors:
+#
 # Release info:
 #
-# v16.1   3/26/2017 dnegvesky
+# 16.1
 #   - initial release for Arrow SoCKit GSRD v16.1 release
 #
-#
-# TODO: add parameters to allow for build customization; arguments passed to variables that are written to Yocto config files
+# TODO: add dependecy checking to this sript (currently in yocto-packages.sh because the installation
+#       of package, if necessary, requires root privileges); this script cannot run as root
+# TODO: add parameters to allow for more build customization (u-boot & kernel version, etc)
+#       pass arguments to variables that are written to Yocto config files
+# TODO: add better flow control: if BUILD_DIR exists then skip the setup and go right to bitbake
 #
 
 #################################################
@@ -55,6 +61,25 @@ usage()
     echo ""
 }
 
+check_disk_space()
+{
+    # assuming OK to work in GB due to large image and HDD sizes
+    FREE_SPACE=`df --block-size=1G $PWD | awk '/[0-9]%/{print $(NF-2)}'`
+
+    printf "\nChecking available disk space... "
+    if [ "$FREE_SPACE" -lt "$IMG_SIZE" ]; then
+        printf "\nAvailable: ${FREE_SPACE} GB\n"
+        printf "Required: ${IMG_SIZE} GB\n"
+        printf "Please free at least $(($IMG_SIZE - $FREE_SPACE)) GB and then rerun the build script.\n"
+        exit 1
+    else
+        printf "OK\n"
+    fi
+
+FREE_SPACE=`df --block-size=1G $PWD | awk '/[0-9]%/{print $(NF-2)}'`
+
+}
+
 #################################################
 # Main
 #################################################
@@ -68,20 +93,20 @@ UBOOT_VER=2017.03
 KERNEL_VER=4.1.33-ltsi
 DISTRO_VER="Angstrom v2016.12"
 BUILD_IMG=arrow-sockit-xfce-image
-IMG_SIZE="75 GB"
+IMG_SIZE=76
 
-# Formatting variables
+# Color text formatting
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 ORANGE='\033[0;33m'
 BLUE='\033[1;34m'
 CYAN='\033[0;36m'
-WHITE='\033[1;37m'
+WHITE='\033[1;37m' # Not good for white terminal background
 NC='\033[0m' # No Color
 
 # ensure not running as root
 if [ `whoami` = root ] ; then
-    printf "\n${RED}ERROR: Do not run this script using root privileges${NC}\n\n"
+    printf "\n${RED}ERROR: Do not run this script as root\n\n"
     exit 1
 fi
 
@@ -112,36 +137,49 @@ while [ "$1" != "" ]; do
 done
 
 # set build parameter variables based on image
+# image sizes are rounded up conservatively
+# actual BUILD_DIR folder sizes:
+#  - uboot                      = 10,949,536,237 (10.2 GiB)
+#  - kernel                     = 13,080,589,500 (12.2 GiB)
+#  - arrow-sockit-console-image = 35,017,792,910 (32.6 GiB)
+#  - arrow-sockit-xfce-image    = 
+
 case $BUILD_IMG in
     arrow-sockit-xfce-image)
-        IMG_SIZE="75 GB"
+        IMG_SIZE=76
     ;;
     arrow-sockit-console-image)
-        IMG_SIZE="? GB"
+        IMG_SIZE=35
     ;;
     uboot)
         BUILD_IMG=virtual/bootloader
-        IMG_SIZE="<5 GB"
+        IMG_SIZE=11
         KERNEL_VER=NA
         GHRD_BRANCH=NA
         DISTRO_VER=NA
     ;;
     kernel)
         BUILD_IMG=virtual/kernel
-        IMG_SIZE="<5 GB"
+        IMG_SIZE=13
         UBOOT_VER=NA
         GHRD_BRANCH=NA
         DISTRO_VER=NA
     ;;
     *)
+        echo ""
+        echo "Invalid image name specified.  Use --help for valid image names."
+        echo ""
+        exit 1
 esac
 
+check_disk_space
+
 # check if BUILD_DIR exists
-echo -e ${WHITE}
+#echo -e ${WHITE}
 if [ -d "$BUILD_DIR" ]; then
     printf "\n${BUILD_DIR} directory already exists.\n"
-    printf "If you continue, you could overwrite previous build results.\n"
-    read -r -p "Continue? [y/N] " response
+    printf "Maybe you intended to run this in another directory.\n"
+    read -r -p "Continue from previous build? [y/n] " response
     case "$response" in
         [yY][eE][sS]|[yY]) 
             printf "\n"
@@ -151,10 +189,10 @@ if [ -d "$BUILD_DIR" ]; then
         ;;
     esac
 fi
-echo -e ${NC}
+#echo -e ${NC}
 
 # print introduction, ask for confirmation
-printf ${GREEN}
+echo -e ${GREEN}
 printf "*******************************************************************\n"
 printf " This is the Yocto 2.2 build script for the Arrow SoCKit Dev. Kit\n"
 printf " Current build configuration:\n"
@@ -165,8 +203,8 @@ printf "  - U-Boot version:         ${BLUE}${UBOOT_VER}${GREEN}\n"
 printf "  - Kernel version:         ${BLUE}${KERNEL_VER}${GREEN}\n"
 printf "  - Distro version:         ${BLUE}${DISTRO_VER}${GREEN}\n"
 printf "  - Build image:            ${BLUE}${BUILD_IMG}${GREEN}\n"
-printf "      disk space required:  ${BLUE}${IMG_SIZE}${GREEN}\n"
-printf "  - output build directory: ${BLUE}${BUILD_DIR}${GREEN}\n"
+printf "      disk space required:  ${BLUE}${IMG_SIZE} GB${GREEN}\n"
+printf "  - top build directory:    ${BLUE}${BUILD_DIR}${GREEN}\n"
 #printf "  - estimated build time:   ${BLUE}> 4 hours typical (processor dependent)${GREEN}\n"
 printf "\n"
 printf " If this is your first time using the Yocto Project OpenEmbedded\n"
@@ -178,10 +216,11 @@ printf " instructed on the rocketboards.org page to check for and install\n"
 printf " any missing build tools and packages.\n"
 printf "*******************************************************************\n"
 printf "\n"
+echo -e ${NC}
 
-echo -e ${WHITE}
+#echo -e ${WHITE}
 echo "Verify build configuration.  Exit and rerun script with --help to make changes."
-read -r -p "Continue? [y/N] " response
+read -r -p "Continue? [y/n] " response
 case "$response" in
     [yY][eE][sS]|[yY]) 
         printf "\n"
@@ -190,13 +229,15 @@ case "$response" in
         exit 1
     ;;
 esac
+#echo -e ${NC}
 
 # create the BUILD_DIR
 mkdir -p $BUILD_DIR && cd $BUILD_DIR
 
 # confirm installation of repo, look in the expected location
+#echo -e ${WHITE}
 if [ ! -f ~/bin/repo ]; then
-    echo "It does not appear that the repo script is installed."
+    echo "It appears that the repo script is not installed."
     echo "If you know you have it then skip this.  Otherwise,"
     echo "if you're not sure, I can install it for you."
     read -r -p "[Y to install / N to skip] " response
@@ -209,7 +250,7 @@ if [ ! -f ~/bin/repo ]; then
                chmod a+x ~/bin/repo > /dev/null`; then
                printf "\ndone\n"
             else
-               printf "${RED}ERROR: repo installation failed\n"
+               printf "${RED}ERROR: repo installation failed${NC}\n"
                exit 1
             fi
         ;;
@@ -217,7 +258,10 @@ if [ ! -f ~/bin/repo ]; then
             printf "Skipping repo install\n"
     esac
 fi
-echo -e ${NC}
+#echo -e ${NC}
+
+# start a build time counter
+SECONDS=0
 
 # start the build process and echo what we are doing
 echo -e ${GREEN}
@@ -289,19 +333,32 @@ sed --follow-symlinks -i '/meta-photography/d' conf/bblayers.conf
 
 echo -e ${GREEN}
 echo "*******************************************************************"
-echo " Starting bitbake...                                               "
+echo " Starting bitbake ${BUILD_IMG}...                                  "
 echo "*******************************************************************"
 echo -e ${NC}
 
 if bitbake $BUILD_IMG ; then
+    # display elapsed build time for successful build
+    ELAPSED="$(($SECONDS / 3600)) hrs $((($SECONDS / 60) % 60)) min $(($SECONDS % 60)) sec"
     echo -e ${GREEN}
-    echo "*******************************************************************"
-    echo " Build completed successfully.  Build output files directory:      "
-    echo -e ${BLUE}
-    echo " ${PWD}/${BUILD_DIR}/deploy/glibc/images/${MACHINE}/               "
-    echo -e ${GREEN}
-    echo " If you built a full image (XFCE or console), you can now copy     "
-    echo " the .socfpga-sdimg file to your micro SD Card.                    "
-    echo "*******************************************************************"
+    printf "*******************************************************************\n"
+    printf " Build completed successfully in ${ELAPSED}\n"
+    printf " Output files directory:\n"
+    printf "\n"
+    printf " ${BLUE}${PWD}/deploy/glibc/images/arrow-sockit/${GREEN}\n"
+    printf "\n"
+    printf " If you built a full image (XFCE or console), you can now copy\n"
+    printf " the SD card image file to your micro SD Card:\n"
+    printf "  1. Insert your micro SD card into appropriate adapter and plug\n"
+    printf "     into USB port or SD card reader port on your PC.\n"
+    printf "  2. Determine the SD card mount point by entering a command such\n"
+    printf "     as ${NC}lsblk${GREEN} at the prompt below.\n"
+    printf "  3. At the prompt, enter the command:\n"
+    printf "     ${NC}sudo dd if=${PWD}/deploy/glibc/images/arrow-sockit/${BUILD_IMG}-arrow-sockit.socfpga-sdimg of=/dev/sd${RED}X${NC} bs=1M && sync${GREEN}\n"
+    printf "     where ${WHITE}sd${RED}X${GREEN} is the mount point determined in step 2.\n"
+    printf "  4. Eject the SD card, insert into the SoCKit SD adapter, and\n"
+    printf "     power on the SoCKit.\n"
+    printf "*******************************************************************\n"
+    printf "\n"
     echo -e ${NC}
 fi

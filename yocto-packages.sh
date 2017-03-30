@@ -21,23 +21,29 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
+# Author: Dan Negvesky <dnegvesky@arrow.com>
+# Contributors:
+#
 # Release info:
 #
-# v1.0   3/26/2017 dnegvesky
+# v1.0
 #   - initial release for Yocto Project 2.2 release
 #
-# Usage: yocto_packages [option]
-# Check for and install Yocto Project 2.2 essential packages
-# Options:
-#     -n, --no-install               Check for packages only; do not install
-#     -d [name], --distro [name]     Specify your distribution name (if auto detect fails)
-#                                    Currently supported distributions:
-#                                    Ubuntu, Debian, Fedora, CentOS, OpenSUSE
-#
 
-# #########
+#################################################
 # Functions
-# #########
+#################################################
+
+usage()
+{
+    echo "Usage: ./yocto_packages [option] (requires root privileges)"
+    echo "Check for and install Yocto Project 2.2 essential packages"
+    echo "Options:"
+    echo "  -n, --no-install               Dry run; check for packages but do not install"
+    echo "  -d [name], --distro [name]     Specify your distribution name (if auto-detect fails)"
+    echo "                                 Currently supported distributions:"
+    echo "                                 name = Ubuntu, Debian, Fedora, CentOS, or OpenSUSE"
+}
 
 check_distro ()
 {
@@ -53,7 +59,7 @@ check_distro ()
 
     # lsb_release might not work on all distros
     lsb_release -is 2> /dev/null
-    if [ "$?" == "127" ]; then
+    if [ "$?" == "127" ]; then  # exit code 127 = command not found
          echo "your Linux distribution was not detected."        
          echo "Try re-running with the -d option, or -h for help."
          exit 1
@@ -123,20 +129,9 @@ install_package ()
     fi
 }
 
-usage()
-{
-    echo "Usage: ./yocto_packages [option] (requires root privileges)"
-    echo "Check for and install Yocto Project 2.2 essential packages"
-    echo "Options:"
-    echo "  -n, --no-install               Dry run; check for packages but do not install"
-    echo "  -d [name], --distro [name]     Specify your distribution name (if auto-detect fails)"
-    echo "                                 Currently supported distributions:"
-    echo "                                 name = Ubuntu, Debian, Fedora, CentOS, or OpenSUSE"
-}
-
-# ####
+#################################################
 # Main
-# ####
+#################################################
 
 install=true
 distro_check=true
