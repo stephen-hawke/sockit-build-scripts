@@ -7,6 +7,6 @@
 
   <project remote="linaro" name="openembedded/meta-linaro" path="layers/meta-linaro" revision="992eaa0a1969c2056a5321c122eaa8cd808c1c82" upstream="master"/>
   <project remote="github" name="kraj/meta-altera" path="layers/meta-altera" revision="master"/>
-  <project remote="github" name="arrow-socfpga/meta-arrow-sockit" path="layers/meta-arrow-sockit" revision="master" upstream="master"/>
+  <project remote="github" name="arrow-socfpga/meta-arrow-sockit" path="layers/meta-arrow-sockit" revision="sockit-gsrd-16.1-dev" upstream="master"/>
   
 </manifest>
