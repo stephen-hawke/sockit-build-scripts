@@ -172,11 +172,13 @@ case $BUILD_IMG in
         exit 1
 esac
 
-check_disk_space
-
-# check if BUILD_DIR exists
+# if BUILD_DIR exists, skip checking disk space because this could be
+# adding to a previous build (e.g. bootloader or kernel only),
+# assume the check was done then
 #echo -e ${WHITE}
-if [ -d "$BUILD_DIR" ]; then
+if [ ! -d "$BUILD_DIR" ]; then
+    check_disk_space
+else
     printf "\n${BUILD_DIR} directory already exists.\n"
     printf "Maybe you intended to run this in another directory.\n"
     read -r -p "Continue from previous build? [y/n] " response
