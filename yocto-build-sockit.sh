@@ -93,7 +93,7 @@ UBOOT_VER=2017.03
 KERNEL_VER=4.1.33-ltsi
 DISTRO_VER="Angstrom v2016.12"
 BUILD_IMG=arrow-sockit-xfce-image
-IMG_SIZE=76
+IMG_SIZE=75
 
 # Color text formatting
 RED='\033[0;31m'
@@ -136,17 +136,20 @@ while [ "$1" != "" ]; do
     shift
 done
 
-# set build parameter variables based on image
+# set build parameter variables based on image specified
+# IMG_SIZE = size in bytes / (1024 * 1,000,000)
 # image sizes are rounded up conservatively
 # actual BUILD_DIR folder sizes:
 #  - uboot                      = 10,949,536,237 (10.2 GiB)
 #  - kernel                     = 13,080,589,500 (12.2 GiB)
 #  - arrow-sockit-console-image = 35,017,792,910 (32.6 GiB)
-#  - arrow-sockit-xfce-image    = 
+#  - arrow-sockit-xfce-image    = 75,888,997,849 (70.7 GiB)
+# these actual image sizes will likely not be updated in new
+# releases of the script as this was more of an acedemic exercise
 
 case $BUILD_IMG in
     arrow-sockit-xfce-image)
-        IMG_SIZE=76
+        IMG_SIZE=75
     ;;
     arrow-sockit-console-image)
         IMG_SIZE=35
@@ -193,6 +196,9 @@ else
 fi
 #echo -e ${NC}
 
+export IMAGE_ROOTFS_EXTRA_SPACE="1048576"
+export BB_ENV_EXTRAWHITE="$BB_ENV_EXTRAWHITE IMAGE_ROOTFS_EXTRA_SPACE"
+
 # print introduction, ask for confirmation
 echo -e ${GREEN}
 printf "*******************************************************************\n"
@@ -213,7 +219,7 @@ printf " If this is your first time using the Yocto Project OpenEmbedded\n"
 printf " build system on this computer, it may be necessary to exit this\n"   
 printf " script and first install some build tools and essential packages\n"
 printf " as documented in the Yocto Project Reference Manual v2.2.  You\n"
-printf " should run the yocto-packages.sh script with root privileges as\n"
+printf " should run the ${NC}yocto-packages.sh${GREEN} script with root privileges as\n"
 printf " instructed on the rocketboards.org page to check for and install\n"
 printf " any missing build tools and packages.\n"
 printf "*******************************************************************\n"
@@ -335,7 +341,7 @@ sed --follow-symlinks -i '/meta-photography/d' conf/bblayers.conf
 
 echo -e ${GREEN}
 echo "*******************************************************************"
-echo " Starting bitbake ${BUILD_IMG}...                                  "
+printf " Starting bitbake ${NC}${BUILD_IMG}${GREEN}...\n"
 echo "*******************************************************************"
 echo -e ${NC}
 
@@ -344,7 +350,8 @@ if bitbake $BUILD_IMG ; then
     ELAPSED="$(($SECONDS / 3600)) hrs $((($SECONDS / 60) % 60)) min $(($SECONDS % 60)) sec"
     echo -e ${GREEN}
     printf "*******************************************************************\n"
-    printf " Build completed successfully in ${ELAPSED}\n"
+    printf " Build of ${NC}${BUILD_IMG}${GREEN}\n"
+    printf " completed successfully in ${NC}${ELAPSED}${GREEN}\n"
     printf " Output files directory:\n"
     printf "\n"
     printf " ${BLUE}${PWD}/deploy/glibc/images/arrow-sockit/${GREEN}\n"
@@ -352,15 +359,21 @@ if bitbake $BUILD_IMG ; then
     printf " If you built a full image (XFCE or console), you can now copy\n"
     printf " the SD card image file to your micro SD Card:\n"
     printf "  1. Insert your micro SD card into appropriate adapter and plug\n"
-    printf "     into USB port or SD card reader port on your PC.\n"
+    printf "     into USB port or SD card reader port on this PC.\n"
     printf "  2. Determine the SD card mount point by entering a command such\n"
     printf "     as ${NC}lsblk${GREEN} at the prompt below.\n"
     printf "  3. At the prompt, enter the command:\n"
     printf "     ${NC}sudo dd if=${PWD}/deploy/glibc/images/arrow-sockit/${BUILD_IMG}-arrow-sockit.socfpga-sdimg of=/dev/sd${RED}X${NC} bs=1M && sync${GREEN}\n"
-    printf "     where ${WHITE}sd${RED}X${GREEN} is the mount point determined in step 2.\n"
-    printf "  4. Eject the SD card, insert into the SoCKit SD adapter, and\n"
-    printf "     power on the SoCKit.\n"
+    printf "     where ${NC}sd${RED}X${GREEN} is the mount point determined in step 2.\n"
+    printf "  4. Eject the SD card from this PC, insert into the SoCKit SD\n"
+    printf "     card adapter, and power on the SoCKit.\n"
     printf "*******************************************************************\n"
     printf "\n"
     echo -e ${NC}
+else
+    echo " It looks like something went wrong with bitbake.  Either you manually"
+    echo " interrupted the build process or perhaps a required build tool is    "
+    echo " still missing that I was not able to detect for your Linux           "
+    echo " distribution.  Please refer to the Yocto Project Reference Manual,   "
+    echo " \"Required Packages for Host Development System\" section.           " 
 fi
