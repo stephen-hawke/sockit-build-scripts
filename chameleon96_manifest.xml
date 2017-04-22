@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<manifest>
+
+  <remove-project name="kraj/meta-altera" />
+  <remove-project name="koenkooi/meta-photography" />
+  <remove-project name="openembedded/meta-linaro" />
+
+  <project remote="linaro" name="openembedded/meta-linaro" path="layers/meta-linaro" revision="992eaa0a1969c2056a5321c122eaa8cd808c1c82" upstream="master"/>
+  <project remote="github" name="kraj/meta-altera" path="layers/meta-altera" revision="master"/>
+  <project remote="local" name="meta-chameleon96" path="layers/meta-chameleon96" revision="angstrom-v2016.12-yocto2.2" upstream="master"/>
+  
+</manifest>
