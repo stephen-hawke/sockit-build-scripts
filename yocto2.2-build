@@ -43,19 +43,19 @@
 usage()
 {
     echo "Usage: ./yocto2.2-build [options]"
-    echo "Yocto build script for Arrow SoCKit"
+    echo "Yocto 2.2 build script for ${DISTRO_VER}"
     echo "Options:"
     echo "  -b, --board [board name]       Target development board.  Currently supported boards:"
     echo "                                   arrow-sockit"
     echo "                                   chameleon96"
-    ehco ""
+    echo ""
     echo "  -d, --directory [dir name]     Build directory name"
     echo "                                 If not specified, defaults to"
     echo "                                 angstrom-v2016.12-yocto2.2"
     echo ""
     echo "  -i, --image [image name]       Only these images names are valid:"
-    echo "                                   arrow-sockit-xfce-image (XFCE graphical desktop, default if image not specified)"
-    echo "                                   arrow-sockit-console-image (console applications only)"
+    echo "                                   xfce (XFCE graphical desktop, default if image not specified)"
+    echo "                                   console (console applications only)"
     echo "                                   uboot (builds U-Boot bootloader only)"
     echo "                                   kernel (builds linux kernel only)"
     echo ""
@@ -83,7 +83,6 @@ check_disk_space()
     fi
 
 FREE_SPACE=`df --block-size=1G $PWD | awk '/[0-9]%/{print $(NF-2)}'`
-
 }
 
 #################################################
@@ -91,15 +90,16 @@ FREE_SPACE=`df --block-size=1G $PWD | awk '/[0-9]%/{print $(NF-2)}'`
 #################################################
 
 # Configuration variables
-SCRIPT_VERSION="Arrow SoCKit GSRD v16.1 Yocto Build Script"
+SCRIPT_VERSION="Yocto 2.2 Build Script"
 SHORT_VER=16.1
 BOARD=arrow-sockit
+BOARD_LONG="Arrow SoCKit Development Kit"
 BUILD_DIR=angstrom-v2016.12-yocto2.2
 GHRD_BRANCH=arrow-sockit-1080p-16.1
 UBOOT_VER=2017.03
 KERNEL_VER=4.1.33-ltsi
 DISTRO_VER="Angstrom v2016.12"
-BUILD_IMG=arrow-sockit-xfce-image
+BUILD_IMG=xfce
 IMG_SIZE=75
 
 # Color text formatting
@@ -140,12 +140,31 @@ while [ "$1" != "" ]; do
             usage
             exit
         ;;
+        -m | --menu)
+            echo "The menu feature is not yet implemented"
+            exit
+        ;;
         *)
             usage
             exit 1
     esac
     shift
 done
+
+# check board name
+case $BOARD in
+    arrow-sockit)
+        BOARD_LONG="Arrow SoCKit Development Kit"
+    ;;
+    chameleon96)
+        BOARD_LONG="Arrow Chameleon96 Community Board"
+    ;;
+    *)
+        echo ""
+        echo "Invalid board name specified.  Use --help for valid image names."
+        echo ""
+        exit 1
+esac
 
 # set build parameter variables based on image specified
 # IMG_SIZE = size in bytes / (1024 * 1,000,000)
@@ -159,10 +178,12 @@ done
 # releases of the script as this was more of an acedemic exercise
 
 case $BUILD_IMG in
-    arrow-sockit-xfce-image)
+    xfce)
+        BUILD_IMG=$BOARD-xfce-image
         IMG_SIZE=75
     ;;
-    arrow-sockit-console-image)
+    console)
+        BUILD_IMG=$BOARD-console-image
         IMG_SIZE=35
     ;;
     uboot)
@@ -217,8 +238,8 @@ printf " This is the Yocto 2.2 build script for the\n"
 printf " ${BOARD_LONG}\n"
 printf " Current build configuration:\n"
 #printf " Run script with --help to view customizable perameters.\n"
-printf "  - SoCKit GSRD release:    ${BLUE}${SHORT_VER}${GREEN}\n"
-printf "  - SoCKit GHRD branch:     ${BLUE}${GHRD_BRANCH}${GREEN}\n"
+printf "  - GSRD release:           ${BLUE}${SHORT_VER}${GREEN}\n"
+printf "  - GHRD branch:            ${BLUE}${GHRD_BRANCH}${GREEN}\n"
 printf "  - U-Boot version:         ${BLUE}${UBOOT_VER}${GREEN}\n"
 printf "  - Kernel version:         ${BLUE}${KERNEL_VER}${GREEN}\n"
 printf "  - Distro version:         ${BLUE}${DISTRO_VER}${GREEN}\n"
@@ -258,8 +279,9 @@ mkdir -p $BUILD_DIR && cd $BUILD_DIR
 #echo -e ${WHITE}
 if [ ! -f ~/bin/repo ]; then
     echo "It appears that the repo script is not installed."
-    echo "If you know you have it then skip this.  Otherwise,"
-    echo "if you're not sure, I can install it for you."
+    echo "If you know you have it and it is in your PATH then"
+    echo "you can skip this.  Otherwise, if you're not sure, I"
+    echo "can install it for you."
     read -r -p "[Y to install / N to skip] " response
     case "$response" in
         [yY][eE][sS]|[yY])
@@ -310,7 +332,7 @@ echo "*******************************************************************"
 echo -e ${NC}
 
 # this is where our custom layers are specified for the repo tool
-if wget https://raw.githubusercontent.com/arrow-socfpga/build-scripts/gsrd-16.1/arrow-sockit_manifest.xml ; then
+if wget https://raw.githubusercontent.com/arrow-socfpga/build-scripts/gsrd-16.1/${BOARD}_manifest.xml ; then
     :
 else
     echo -e ${RED}
@@ -320,7 +342,7 @@ else
 fi
 
 mkdir -p .repo/local_manifests
-mv arrow-sockit_manifest.xml .repo/local_manifests
+mv ${BOARD}_manifest.xml .repo/local_manifests
 #cp ../../arrow-sockit_manifest.xml .repo/local_manifests
 
 echo -e ${GREEN}
@@ -337,7 +359,7 @@ echo " Setting up environment...                                         "
 echo "*******************************************************************"
 echo -e ${NC}
 
-MACHINE=arrow-sockit . ./setup-environment
+MACHINE=$BOARD . ./setup-environment
 
 echo -e ${GREEN}
 echo "*******************************************************************"
@@ -346,7 +368,7 @@ echo "*******************************************************************"
 echo -e ${NC}
 
 # add custom layer to bblayers.conf
-sed --follow-symlinks -i '/meta-96boards/a \ \ \$\{TOPDIR\}\/layers\/meta-arrow-sockit \\' conf/bblayers.conf
+sed --follow-symlinks -i "/meta-96boards/a \  \${TOPDIR}/layers/meta-${BOARD} \\\\" conf/bblayers.conf
 
 # disable meta-photography layer - causing gnome-keyring bitbake error
 sed --follow-symlinks -i '/meta-photography/d' conf/bblayers.conf
@@ -366,7 +388,7 @@ if bitbake $BUILD_IMG ; then
     printf " completed successfully in ${NC}${ELAPSED}${GREEN}\n"
     printf " Output files directory:\n"
     printf "\n"
-    printf " ${BLUE}${PWD}/deploy/glibc/images/arrow-sockit/${GREEN}\n"
+    printf " ${BLUE}${PWD}/deploy/glibc/images/${BOARD}/${GREEN}\n"
     printf "\n"
     printf " If you built a full image (XFCE or console), you can now copy\n"
     printf " the SD card image file to your micro SD Card:\n"
@@ -375,10 +397,10 @@ if bitbake $BUILD_IMG ; then
     printf "  2. Determine the SD card mount point by entering a command such\n"
     printf "     as ${NC}lsblk${GREEN} at the prompt below.\n"
     printf "  3. At the prompt, enter the command:\n"
-    printf "     ${NC}sudo dd if=${PWD}/deploy/glibc/images/arrow-sockit/${BUILD_IMG}-arrow-sockit.socfpga-sdimg of=/dev/sd${RED}X${NC} bs=1M && sync${GREEN}\n"
+    printf "     ${NC}sudo dd if=${PWD}/deploy/glibc/images/${BOARD}/${BUILD_IMG}-${BOARD}.socfpga-sdimg of=/dev/sd${RED}X${NC} bs=1M && sync${GREEN}\n"
     printf "     where ${NC}sd${RED}X${GREEN} is the mount point determined in step 2.\n"
-    printf "  4. Eject the SD card from this PC, insert into the SoCKit SD\n"
-    printf "     card adapter, and power on the SoCKit.\n"
+    printf "  4. Eject the SD card from this PC, insert into the board's SD\n"
+    printf "     card adapter, and power on the board.\n"
     printf "*******************************************************************\n"
     printf "\n"
     echo -e ${NC}
