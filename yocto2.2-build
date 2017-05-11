@@ -30,7 +30,7 @@
 #   - initial release for Arrow SoCKit GSRD v16.1 release
 #
 # TODO: add dependecy checking to this sript (currently in yocto-packages.sh because the installation
-#       of package, if necessary, requires root privileges); this script cannot run as root
+#       of packages, if necessary, requires root privileges); this script cannot run as root
 # TODO: add parameters to allow for more build customization (u-boot & kernel version, etc)
 #       pass arguments to variables that are written to Yocto config files
 # TODO: add better flow control: if BUILD_DIR exists then skip the setup and go right to bitbake
@@ -95,7 +95,7 @@ SHORT_VER=16.1
 BOARD=arrow-sockit
 BOARD_LONG="Arrow SoCKit Development Kit"
 BUILD_DIR=angstrom-v2016.12-yocto2.2
-GHRD_BRANCH=arrow-sockit-1080p-16.1
+GHRD_BRANCH=
 UBOOT_VER=2017.03
 KERNEL_VER=4.1.33-ltsi
 DISTRO_VER="Angstrom v2016.12"
@@ -396,9 +396,12 @@ if bitbake $BUILD_IMG ; then
     printf "     into USB port or SD card reader port on this PC.\n"
     printf "  2. Determine the SD card mount point by entering a command such\n"
     printf "     as ${NC}lsblk${GREEN} at the prompt below.\n"
-    printf "  3. At the prompt, enter the command:\n"
+    printf "  3. At the prompt, enter or copy & paste the command:\n"
     printf "     ${NC}sudo dd if=${PWD}/deploy/glibc/images/${BOARD}/${BUILD_IMG}-${BOARD}.socfpga-sdimg of=/dev/sd${RED}X${NC} bs=1M && sync${GREEN}\n"
     printf "     where ${NC}sd${RED}X${GREEN} is the mount point determined in step 2.\n"
+    printf "     ${ORANGE}WARNING: using dd incorrectly can result in data loss and \n"
+    printf "     frustration.  Be absolutely certain you specify the correct \n"
+    printf "     mount point determined in step 2 above.${GREEN}\n"
     printf "  4. Eject the SD card from this PC, insert into the board's SD\n"
     printf "     card adapter, and power on the board.\n"
     printf "*******************************************************************\n"
