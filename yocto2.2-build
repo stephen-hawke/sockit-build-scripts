@@ -369,9 +369,11 @@ echo -e ${NC}
 
 # add custom layer to bblayers.conf
 sed --follow-symlinks -i "/meta-96boards/a \  \${TOPDIR}/layers/meta-${BOARD} \\\\" conf/bblayers.conf
+echo "Added meta-${BOARD} layer to bblayers.conf"
 
 # disable meta-photography layer - causing gnome-keyring bitbake error
 sed --follow-symlinks -i '/meta-photography/d' conf/bblayers.conf
+echo "Removed meta-photography layer from bblayers.conf"
 
 echo -e ${GREEN}
 echo "*******************************************************************"
