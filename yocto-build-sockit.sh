@@ -244,7 +244,7 @@ mkdir -p $BUILD_DIR && cd $BUILD_DIR
 
 # confirm installation of repo, look in the expected location
 #echo -e ${WHITE}
-if [ ! -f ~/bin/repo ]; then
+if [ -z `which repo 2>/dev/null` ]; then
     echo "It appears that the repo script is not installed."
     echo "If you know you have it then skip this.  Otherwise,"
     echo "if you're not sure, I can install it for you."
@@ -254,7 +254,7 @@ if [ ! -f ~/bin/repo ]; then
             printf "Installing repo in ~/bin... \n\n"
             if `mkdir -p ~/bin &&
                PATH=~/bin:$PATH &&
-               curl http://commondatastorage.googleapis.com/git-repo-downloads/repo > ~/bin/repo &&
+               curl https://mirrors.tuna.tsinghua.edu.cn/git/git-repo > ~/bin/repo &&
                chmod a+x ~/bin/repo > /dev/null`; then
                printf "\ndone\n"
             else
@@ -266,6 +266,7 @@ if [ ! -f ~/bin/repo ]; then
             printf "Skipping repo install\n"
     esac
 fi
+export REPO_URL='https://mirrors.tuna.tsinghua.edu.cn/git/git-repo/'
 #echo -e ${NC}
 
 # start a build time counter
@@ -279,16 +280,33 @@ echo "*******************************************************************"
 echo -e ${NC}
 
 # Clone Angstrom repo
-if repo init -u git://github.com/Angstrom-distribution/angstrom-manifest -b angstrom-v2016.12-yocto2.2 ; then
-    :
-else
-    echo -e ${RED}
-    echo "ERROR: Cloning Angstrom repo failed."
-    echo -e ${ORANGE}
-    echo "Are you sure you have repo installed?"
-    echo "Maybe you need to run yocto-pacakges.sh first."
-    echo -e ${NC}
-    exit 1
+REPOEXIST=0
+if [ -d .repo ]; then
+	echo -e ${WHITE}
+	echo "It seams link there is .repo already."
+	read -r -p "Do you want to remove it? [y/n] " response
+	case "$response" in
+   		[yY][eE][sS]|[yY]) 
+	    	rm .repo -rf    
+	    ;;
+    	*)
+        	REPOEXIST=1
+	    ;;
+	esac
+	echo -e ${NC}
+fi
+if [ $REPOEXIST -eq 0 ]; then
+	if repo init -u git://github.com/Angstrom-distribution/angstrom-manifest -b angstrom-v2016.12-yocto2.2 ; then
+    	:
+	else
+    	echo -e ${RED}
+    	echo "ERROR: Cloning Angstrom repo failed."
+    	echo -e ${ORANGE}
+    	echo "Are you sure you have repo installed?"
+    	echo "Maybe you need to run yocto-pacakges.sh first."
+    	echo -e ${NC}
+    	exit 1
+	fi
 fi
 
 echo -e ${GREEN}
