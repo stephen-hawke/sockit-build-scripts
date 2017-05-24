@@ -29,6 +29,10 @@
 # v1.0
 #   - initial release for Yocto Project 2.2 release
 #
+# 3/30/2017 - tested with Ubuntu 16.04
+# 3/30/2017 - tested with Ubuntu 14.04
+# 5/11/2017 - tested with CentOS 7-1611
+# 5/19/2017 - tested with openSUSE 42.2
 
 #################################################
 # Functions
@@ -36,28 +40,23 @@
 
 usage()
 {
+    echo ""
     echo "Usage: ./yocto_packages [option] (requires root privileges)"
     echo "Check for and install Yocto Project 2.2 essential packages"
     echo "Options:"
     echo "  -n, --no-install               Dry run; check for packages but do not install"
+    echo ""
     echo "  -d [name], --distro [name]     Specify your distribution name (if auto-detect fails)"
     echo "                                 Currently supported distributions:"
     echo "                                 name = Ubuntu, Debian, Fedora, CentOS, or OpenSUSE"
+    echo ""
 }
 
 check_distro ()
 {
-    printf "Detecting distribution... "
-    # lsb_release might not work on all distros (CentOS 7 ?)
-#    if [ ! `lsb_release -is 2> /dev/null | grep "command not found" > /dev/null` ]; then
-#        echo "your Linux distribution was not detected."
-#        echo "Try re-running with the -d option, or -h for help."
-#        exit 1
-#    else
-#        DISTRO=$(lsb_release -is)
-#    fi
+    printf "\nDetecting distribution...\n"
 
-    # lsb_release might not work on all distros
+    # lsb_release might not work on all distros, so check for "command not found" error
     lsb_release -is 2> /dev/null
     if [ "$?" == "127" ]; then  # exit code 127 = command not found
          echo "your Linux distribution was not detected."        
@@ -88,8 +87,8 @@ check_package ()
                 install_package $1
             fi
         ;;
-        "OpenSUSE")
-            if `zypper info $1 | grep "Installed: Yes" > /dev/null`; then
+        "OpenSUSE" | "openSUSE" | "openSUSE project")
+            if `zypper info $1 | grep "Installed[[:space:]]\{2,\}:[[:space:]]Yes" > /dev/null`; then
                 printf "installed\n"
             else
                 printf "not installed\n"
@@ -117,7 +116,7 @@ install_package ()
                     printf "done\n"
                 fi
             ;;
-            "OpenSUSE")
+            "OpenSUSE" | "openSUSE" | "openSUSE project")
                 if `zypper -qn install $1 > /dev/null`; then
                     printf "done\n"
                 fi
@@ -192,42 +191,42 @@ case "$DISTRO" in
     "Fedora")
         # Essentials
         check_package 'gawk' 
-	check_package 'make'
-	check_package 'wget'
-	check_package 'tar' 
-	check_package 'bzip2'
-	check_package 'gzip'
-	check_package 'python3'
-	check_package 'unzip'
-	check_package 'perl'
-	check_package 'patch'
-	check_package 'diffutils'
-	check_package 'diffstat'
-	check_package 'git'
-	check_package 'cpp'
-	check_package 'gcc'
-	check_package 'gcc-c++'
-	check_package 'glibc-devel'
-	check_package 'texinfo'
-	check_package 'chrpath'
-	check_package 'ccache'
-	check_package 'perl-Data-Dumper'
-	check_package 'perl-Text-ParseWords'
-	check_package 'perl-Thread-Queue'
-	check_package 'perl-bignum'
-	check_package 'socat'
-	# Graphics or Eclipse support
-	check_package 'SDL-devel'
-	check_package 'xterm'
+        check_package 'make'
+        check_package 'wget'
+        check_package 'tar'
+        check_package 'bzip2'
+        check_package 'gzip'
+        check_package 'python3'
+        check_package 'unzip'
+        check_package 'perl'
+        check_package 'patch'
+        check_package 'diffutils'
+        check_package 'diffstat'
+        check_package 'git'
+        check_package 'cpp'
+        check_package 'gcc'
+        check_package 'gcc-c++'
+        check_package 'glibc-devel'
+        check_package 'texinfo'
+        check_package 'chrpath'
+        check_package 'ccache'
+        check_package 'perl-Data-Dumper'
+        check_package 'perl-Text-ParseWords'
+        check_package 'perl-Thread-Queue'
+        check_package 'perl-bignum'
+        check_package 'socat'
+        # Graphics or Eclipse support
+        check_package 'SDL-devel'
+        check_package 'xterm'
         # Other
         check_package 'curl'
     ;;
-    "OpenSUSE")
+    "OpenSUSE" | "openSUSE" | "openSUSE project")
         # Essentials
         check_package 'gcc' 
         check_package 'gcc-c++'
         check_package 'git'
-        check_package 'chrpath' 
+        check_package 'chrpath'
         check_package 'make'
         check_package 'wget'
         check_package 'python-xml'
@@ -274,8 +273,12 @@ case "$DISTRO" in
         check_package 'curl'
     ;;
     *)
+        echo ""
         echo "Linux distribution not detected or not supported."
-        echo "Please refer to the latest Yocto Project Reference Manual found at http://www.yoctoproject.org"
+        echo "Please try using the --help option or refer to the"
+        echo "latest Yocto Project Reference Manual found at"
+        echo "http://www.yoctoproject.org"
+        echo ""
         exit 1
     ;;
 esac
