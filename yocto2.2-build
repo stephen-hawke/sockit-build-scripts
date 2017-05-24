@@ -85,6 +85,67 @@ check_disk_space()
 FREE_SPACE=`df --block-size=1G $PWD | awk '/[0-9]%/{print $(NF-2)}'`
 }
 
+# On new installations of git, make sure it has been configured with
+# user's name and e-mail.
+check_git_config()
+{
+printf "\nChecking git global configuration... "
+
+if [[ ! $(git config user.name) || ! $(git config user.email) ]]; then
+    printf "\n\nIt appears that git has not yet been configured with"
+    printf "\nyour name or e-mail address (this is required for repo)."
+    printf "\nI can set this up for you.\n"
+    correct=false
+    fix_name=false
+    fix_email=false
+    while ! $correct; do
+        # don't accept blank name
+        while [[ -z $GIT_NAME ]] || $fix_name; do
+            printf "Please enter your first and last name (e.g. John Doe): "
+            read GIT_NAME
+            fix_name=false
+        done
+        # don't accept blank e-mail
+        while [[ -z $GIT_EMAIL ]] || $fix_email; do
+            printf "Please enter your e-mail address (e.g. username@domain): "
+            read GIT_EMAIL
+            fix_email=false
+        done
+        # verify entries
+        printf "\nYou have entered your name as: ${GIT_NAME}"
+        printf "\nYou have entered your e-mail as: ${GIT_EMAIL}"
+        printf "\n\nIs this correct? "
+        read -r -p "[Y to proceed / N to fix Name / E to fix e-mail / B to fix both Name and e-mail] " correct
+            case "$correct" in
+                [yY][eE][sS]|[yY])
+                    correct=true
+                ;;
+                [nN])
+                    correct=false
+                    fix_name=true
+                ;;
+                [eE])
+                    correct=false
+                    fix_email=true
+                ;;
+                [bB])
+                    correct=false
+                    fix_name=true
+                    fix_email=true
+                ;;
+                *)
+                    correct=false
+                    fix_name=true
+                    fix_email=true
+            esac
+    done
+    git config --global user.name "$GIT_NAME"
+    git config --global user.email "$GIT_EMAIL"
+else
+    printf "OK\n"
+fi
+}
+
 #################################################
 # Main
 #################################################
@@ -302,6 +363,8 @@ if [ ! -f ~/bin/repo ]; then
 fi
 #echo -e ${NC}
 
+check_git_config
+
 # start a build time counter
 SECONDS=0
 
@@ -404,8 +467,9 @@ if bitbake $BUILD_IMG ; then
     printf "     ${ORANGE}WARNING: using dd incorrectly can result in data loss and \n"
     printf "     frustration.  Be absolutely certain you specify the correct \n"
     printf "     mount point determined in step 2 above.${GREEN}\n"
-    printf "  4. Eject the SD card from this PC, insert into the board's SD\n"
-    printf "     card adapter, and power on the board.\n"
+    printf "  4. When copying is finished and you are returned to the command\n"
+    printf "     prompt, eject the SD card from this PC, insert into the\n"
+    printf "     board's SD card adapter, and power on the board.\n"
     printf "*******************************************************************\n"
     printf "\n"
     echo -e ${NC}
